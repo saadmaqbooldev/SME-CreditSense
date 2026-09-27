@@ -6,7 +6,6 @@ deterministic (fixed seed) and regenerating it per-test would be wasteful — ev
 in both test files reads from the same `dataset` fixture.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 

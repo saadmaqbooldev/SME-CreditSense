@@ -65,6 +65,7 @@ omit = ["*/migrations/*", "*/notebooks/*"]
 [tool.ruff]
 line-length = 88
 src = ["src"]
+exclude = ["*.ipynb"]
 
 [project.scripts]
 creditsense = "creditsense:main"

@@ -8,9 +8,7 @@ SBP caps are never breached, derived fields stay logically consistent with the
 fields they're derived from, and the label heads carry genuine, recoverable signal.
 """
 
-import numpy as np
 import pandas as pd
-import pytest
 
 from creditsense.data.generators import portfolio as gen
 

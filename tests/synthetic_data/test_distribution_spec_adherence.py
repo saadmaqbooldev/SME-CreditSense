@@ -11,8 +11,6 @@ which is covered separately in test_economic_realism.py.
 """
 
 import numpy as np
-import pandas as pd
-import pytest
 from scipy import stats
 
 from creditsense.data.generators import portfolio as gen
