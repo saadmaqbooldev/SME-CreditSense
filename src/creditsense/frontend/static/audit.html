@@ -3,87 +3,132 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
 <title>CreditSense — Audit Trail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css?v=2" />
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-<nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
-  <span class="font-bold text-lg">CreditSense</span>
-  <a href="index.html" class="text-sm text-slate-500 hover:text-slate-900">Work Queue</a>
-  <a href="regulations.html" class="text-sm text-slate-500 hover:text-slate-900">Regulations</a>
-  <a href="portfolio.html" class="text-sm text-slate-500 hover:text-slate-900">Portfolio</a>
-  <a href="audit.html" class="text-sm font-medium text-slate-900">Audit Trail</a>
+<body>
+<a href="#main" class="sr-only">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a href="index.html" class="brand"><span class="brand-mark" aria-hidden="true">CS</span> CreditSense</a>
+  <a href="index.html" class="navlink">Work Queue</a>
+  <a href="regulations.html" class="navlink">Regulations</a>
+  <a href="portfolio.html" class="navlink">Portfolio</a>
+  <a href="audit.html" class="navlink" aria-current="page">Audit Trail</a>
 </nav>
 
-<main class="max-w-5xl mx-auto px-6 py-8">
-  <h1 class="text-2xl font-bold mb-1">Audit Trail</h1>
-  <p class="text-slate-500 text-sm mb-6">
-    Every automated decision, plus every human accept/override, is reconstructible
-    after the fact. Nothing here mutates a prior row -- overrides and acceptances are
-    appended, never in-place edits.
-  </p>
-  <div id="content"></div>
+<main id="main" class="shell shell-lg">
+  <header class="page-head rise">
+    <h1 class="h1"><span class="gradient-text">Audit Trail</span></h1>
+    <p class="lede" style="margin:.5rem 0 0">
+      Every automated decision, plus every human accept or override, is reconstructible
+      after the fact. Nothing here mutates a prior row — acceptances and overrides are
+      appended, never in-place edits. Expand any event to read the exact payload.
+    </p>
+  </header>
+
+  <div id="stats" class="stat-grid" style="margin-bottom:1.4rem"></div>
+  <div id="content" aria-live="polite"></div>
 </main>
 
 <script>
-const { el, fetchJSON, skeleton, emptyState, errorState, fmtDate } = CS;
+const { el, rise, fetchJSON, skeleton, emptyState, errorState, statTile, countUp, fmtDate } = CS;
 
-const ACTION_LABEL = {
-  underwriting_decision: "Underwriting decision",
-  decision_accepted: "Accepted by officer",
-  decision_overridden: "Overridden by officer",
+const ACTIONS = {
+  underwriting_decision: { label: "Underwriting decision", icon: "⚙", cls: "badge-solid" },
+  decision_accepted:     { label: "Accepted by officer",   icon: "✓", cls: "badge-ok" },
+  decision_overridden:   { label: "Overridden by officer", icon: "✋", cls: "badge-warn" },
 };
 
 function actionBadge(action) {
-  const classes = {
-    underwriting_decision: "bg-slate-100 text-slate-700",
-    decision_accepted: "bg-emerald-100 text-emerald-800",
-    decision_overridden: "bg-amber-100 text-amber-900",
-  }[action] || "bg-slate-100 text-slate-700";
-  return el("span", { class: `text-xs px-2 py-0.5 rounded font-medium ${classes}` }, ACTION_LABEL[action] || action);
+  const a = ACTIONS[action] || { label: action, icon: "·", cls: "" };
+  return el("span", { class: `badge ${a.cls}` },
+    el("span", { "aria-hidden": "true" }, a.icon), el("span", {}, a.label));
+}
+
+function auditRow(r, i) {
+  const payloadEl = el("pre", { class: "pre scroll-y hidden", id: `payload-${i}` });
+  let loaded = false;
+
+  const chevron = el("span", {
+    "aria-hidden": "true",
+    style: "flex:none;color:var(--text-dim);transition:transform .25s var(--ease)",
+  }, "▸");
+
+  // A real <button> rather than a clickable <div>: the whole trail stays reachable by
+  // keyboard, and aria-expanded is what announces open/closed, not the chevron.
+  const toggle = el("button", {
+    class: "row",
+    style: "width:100%;background:none;border:0;font:inherit;text-align:left;cursor:pointer",
+    "aria-expanded": "false",
+    "aria-controls": payloadEl.id,
+    onclick: async () => {
+      const open = payloadEl.classList.toggle("hidden") === false;
+      toggle.setAttribute("aria-expanded", String(open));
+      chevron.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+      if (open) payloadEl.classList.add("fade");
+      if (!loaded && open) {
+        loaded = true;
+        payloadEl.textContent = "Loading payload…";
+        try {
+          const detail = await fetchJSON(`/api/decisions/${encodeURIComponent(r.id)}`);
+          payloadEl.textContent = JSON.stringify(detail, null, 2);
+        } catch (err) {
+          loaded = false; // let a failed fetch be retried by collapsing and reopening
+          payloadEl.textContent = "Could not load: " + err.message;
+        }
+      }
+    },
+  },
+    el("span", { style: "display:flex;align-items:center;gap:.75rem;min-width:0" },
+      chevron,
+      actionBadge(r.action),
+      el("span", { class: "row-title" }, r.applicant_id || "—"),
+      el("span", { class: "badge" }, r.status)
+    ),
+    el("span", { class: "row-meta dim" }, fmtDate(r.created_at))
+  );
+
+  return el("div", {}, toggle, el("div", { style: "padding:0 1.15rem .9rem" }, payloadEl));
 }
 
 async function load() {
+  const statsHost = document.getElementById("stats");
   const content = document.getElementById("content");
+  statsHost.appendChild(skeleton(1));
   content.appendChild(skeleton(8));
   try {
     const rows = await fetchJSON("/api/decisions?limit=200");
+
+    statsHost.innerHTML = "";
+    const counts = [
+      ["Events recorded", rows.length, "most recent 200"],
+      ["Automated decisions", rows.filter((r) => r.action === "underwriting_decision").length, "runs of the four agents"],
+      ["Accepted", rows.filter((r) => r.action === "decision_accepted").length, "officer agreed as-is"],
+      ["Overridden", rows.filter((r) => r.action === "decision_overridden").length, "officer recorded a reason"],
+    ];
+    counts.forEach(([label, value, sub], i) => {
+      const tile = rise(statTile(label, "—", sub), i);
+      statsHost.appendChild(tile);
+      countUp(tile.querySelector(".stat-value"), value);
+    });
+
     content.innerHTML = "";
     if (rows.length === 0) {
-      content.appendChild(emptyState("No audit history yet."));
+      content.appendChild(emptyState("No audit history yet — run an application to start the trail.", "◷"));
       return;
     }
-    const table = el("div", { class: "divide-y divide-slate-200 bg-white border border-slate-200 rounded-lg overflow-hidden" });
-    rows.forEach((r) => {
-      const payloadEl = el("pre", { class: "payload hidden mt-2 text-xs bg-slate-50 border border-slate-200 rounded p-3 overflow-x-auto" }, "");
-      let loaded = false;
-      const row = el("div", { class: "px-4 py-3" },
-        el("div", { class: "flex items-center justify-between cursor-pointer" , onclick: async () => {
-            payloadEl.classList.toggle("hidden");
-            if (!loaded && !payloadEl.classList.contains("hidden")) {
-              loaded = true;
-              try {
-                const detail = await fetchJSON(`/api/decisions/${encodeURIComponent(r.id)}`);
-                payloadEl.textContent = JSON.stringify(detail, null, 2);
-              } catch (err) {
-                payloadEl.textContent = "Could not load: " + err.message;
-              }
-            }
-          } },
-          el("div", { class: "flex items-center gap-3" },
-            actionBadge(r.action),
-            el("span", { class: "font-medium" }, r.applicant_id || "—"),
-            el("span", { class: "text-sm text-slate-500" }, r.status)
-          ),
-          el("span", { class: "text-sm text-slate-400" }, fmtDate(r.created_at))
-        ),
-        payloadEl
-      );
-      table.appendChild(row);
-    });
-    content.appendChild(table);
+    const list = el("div", { class: "card list" });
+    rows.forEach((r, i) => list.appendChild(rise(auditRow(r, i), i)));
+    content.appendChild(list);
   } catch (err) {
+    statsHost.innerHTML = "";
     content.innerHTML = "";
     content.appendChild(errorState(err.message));
   }

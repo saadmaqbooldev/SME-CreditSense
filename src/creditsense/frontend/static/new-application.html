@@ -3,99 +3,131 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
 <title>CreditSense — New Applicant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css?v=2" />
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-<nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
-  <span class="font-bold text-lg">CreditSense</span>
-  <a href="index.html" class="text-sm text-slate-500 hover:text-slate-900">Work Queue</a>
-  <a href="regulations.html" class="text-sm text-slate-500 hover:text-slate-900">Regulations</a>
-  <a href="portfolio.html" class="text-sm text-slate-500 hover:text-slate-900">Portfolio</a>
-  <a href="audit.html" class="text-sm text-slate-500 hover:text-slate-900">Audit Trail</a>
+<body>
+<a href="#main" class="sr-only">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a href="index.html" class="brand"><span class="brand-mark" aria-hidden="true">CS</span> CreditSense</a>
+  <a href="index.html" class="navlink">Work Queue</a>
+  <a href="regulations.html" class="navlink">Regulations</a>
+  <a href="portfolio.html" class="navlink">Portfolio</a>
+  <a href="audit.html" class="navlink">Audit Trail</a>
 </nav>
 
-<main class="max-w-3xl mx-auto px-6 py-8">
-  <h1 class="text-2xl font-bold mb-1">New Applicant</h1>
-  <p class="text-slate-500 text-sm mb-6">
-    For an applicant who has never been seeded into CreditSense. Download the intake
-    template, fill it in a PDF viewer, and upload it back -- or just fill the form
-    below by hand. Nothing is saved until you click "Run underwriting", which first
-    creates the applicant's record, then runs the same four agents as any other case.
-  </p>
-
-  <div class="bg-white border border-slate-200 rounded-lg p-4 mb-4">
-    <h2 class="font-semibold mb-2">1. Download the intake template</h2>
-    <a href="assets/creditsense_intake_template.pdf" download
-       class="inline-block bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg">
-      Download PDF template
-    </a>
-    <p class="text-xs text-slate-500 mt-2">A fillable PDF -- open it in your browser or Acrobat/Preview, type into each field, save, then upload it below.</p>
-  </div>
-
-  <div class="bg-white border border-slate-200 rounded-lg p-4 mb-4">
-    <h2 class="font-semibold mb-2">2. Upload the filled PDF (optional)</h2>
-    <input id="pdf-input" type="file" accept="application/pdf" class="text-sm" />
-    <div id="upload-status" class="mt-2 text-sm"></div>
-  </div>
-
-  <div class="bg-white border border-slate-200 rounded-lg p-4 mb-4">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="font-semibold">3. Confirm or fill in the details</h2>
-      <button id="toggle-json" class="text-xs text-indigo-600 hover:underline">Edit as JSON</button>
-    </div>
-    <p class="text-xs text-slate-500 mb-3">
-      Document details (what a real uploaded document would carry) and bank/credit-bureau
-      details (ECIB score, payment history, etc.) -- for an existing applicant these come
-      from their file automatically; for a brand-new one, both are needed for ML scoring
-      and compliance to run at all rather than escalating for missing data.
+<main id="main" class="shell shell-sm">
+  <header class="page-head rise">
+    <h1 class="h1"><span class="gradient-text">New Applicant</span></h1>
+    <p class="lede" style="margin:.5rem 0 0">
+      For an applicant who has never been seeded into CreditSense. Download the intake
+      template, fill it in a PDF viewer and upload it back — or fill the form below by
+      hand. Nothing is saved until you press <strong style="color:var(--text)">Run underwriting</strong>,
+      which first creates the applicant's record, then runs the same four agents as any
+      other case.
     </p>
+  </header>
 
-    <h3 class="text-sm font-semibold text-slate-700 mb-2">Document details</h3>
-    <div id="form-fields" class="space-y-3 mb-5"></div>
+  <div class="stack-lg">
+    <section class="card rise" style="--i:1">
+      <div class="card-hd"><span class="step-num" aria-hidden="true">1</span><h2 class="h2">Download the intake template</h2></div>
+      <div class="card-pad">
+        <a href="assets/creditsense_intake_template.pdf" download class="btn btn-primary">
+          <span aria-hidden="true">⤓</span> Download PDF template
+        </a>
+        <p class="hint">A fillable PDF — open it in your browser or Acrobat/Preview, type into each field, save, then upload it below.</p>
+      </div>
+    </section>
 
-    <h3 class="text-sm font-semibold text-slate-700 mb-2">Bank / credit-bureau details</h3>
-    <div id="record-fields" class="space-y-3"></div>
+    <section class="card rise" style="--i:2">
+      <div class="card-hd"><span class="step-num" aria-hidden="true">2</span><h2 class="h2">Upload the filled PDF <span class="dim" style="font-weight:400">(optional)</span></h2></div>
+      <div class="card-pad">
+        <label id="drop-zone" for="pdf-input"
+               style="display:flex;align-items:center;gap:.8rem;padding:1.1rem;cursor:pointer;
+                      border:1px dashed var(--border-hi);border-radius:var(--radius-sm);
+                      background:rgba(2,6,16,.35);transition:border-color .2s,background-color .2s">
+          <span aria-hidden="true" style="font-size:1.5rem">▤</span>
+          <span>
+            <span style="display:block;font-size:.885rem;font-weight:600">Choose a PDF, or drop one here</span>
+            <span class="hint" style="display:block;margin:0">Fields are extracted and pre-filled below — you confirm every value.</span>
+          </span>
+        </label>
+        <input id="pdf-input" type="file" accept="application/pdf" class="sr-only" />
+        <div id="upload-status" style="margin-top:.7rem"></div>
+      </div>
+    </section>
 
-    <div id="json-panel" class="hidden mt-4 border-t border-slate-200 pt-4">
-      <textarea id="json-box" rows="14" spellcheck="false"
-                class="w-full border border-slate-300 rounded-lg p-2 text-xs font-mono"></textarea>
-      <button id="apply-json" class="mt-2 bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg">Apply JSON to form</button>
-      <div id="json-error" class="text-sm text-red-700 mt-2"></div>
-    </div>
-  </div>
+    <section class="card rise" style="--i:3">
+      <div class="card-hd" style="flex-wrap:wrap">
+        <span class="step-num" aria-hidden="true">3</span>
+        <h2 class="h2">Confirm or fill in the details</h2>
+        <button id="toggle-json" class="btn-link" style="margin-left:auto" aria-expanded="false" aria-controls="json-panel">Edit as JSON</button>
+      </div>
+      <div class="card-pad">
+        <p class="lede" style="font-size:.82rem;margin:0 0 1.1rem">
+          Document details (what a real uploaded document would carry) and bank/credit-bureau
+          details (eCIB score, payment history, and so on). For an existing applicant these
+          come from their file automatically; for a brand-new one both are needed for ML
+          scoring and compliance to run at all, rather than escalating for missing data.
+        </p>
 
-  <div class="bg-white border border-slate-200 rounded-lg p-4 mb-4 space-y-3">
-    <h2 class="font-semibold">4. Application details</h2>
+        <h3 class="stat-label" style="margin-bottom:.6rem">Document details</h3>
+        <div id="form-fields" class="stack-sm" style="margin-bottom:1.5rem"></div>
+
+        <h3 class="stat-label" style="margin-bottom:.6rem">Bank / credit-bureau details</h3>
+        <div id="record-fields" class="stack-sm"></div>
+
+        <div id="json-panel" class="hidden" style="margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--border)">
+          <label class="label" for="json-box">Raw field JSON</label>
+          <textarea id="json-box" class="textarea mono" rows="14" spellcheck="false"></textarea>
+          <button id="apply-json" class="btn btn-primary" style="margin-top:.6rem">Apply JSON to form</button>
+          <div id="json-error" style="margin-top:.6rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card rise" style="--i:4">
+      <div class="card-hd"><span class="step-num" aria-hidden="true">4</span><h2 class="h2">Application details</h2></div>
+      <div class="card-pad stack">
+        <div>
+          <label class="label" for="applicant-id">Applicant ID <span class="dim" style="font-weight:400">(new, not yet in the system)</span></label>
+          <input id="applicant-id" type="text" class="input" placeholder="e.g. SME-NEW-0001" />
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.8rem">
+          <div>
+            <label class="label" for="requested-amount">Requested amount (PKR, optional)</label>
+            <input id="requested-amount" type="number" min="0" class="input" />
+          </div>
+          <div>
+            <label class="label" for="tenor-months">Tenor (months, optional)</label>
+            <input id="tenor-months" type="number" min="0" class="input" />
+          </div>
+        </div>
+        <label class="check">
+          <input id="is-clean-facility" type="checkbox" />
+          Clean facility (unsecured / personal-guarantee only)
+        </label>
+      </div>
+    </section>
+
     <div>
-      <label class="block text-sm text-slate-600 mb-1">Applicant ID (new, not yet in the system)</label>
-      <input id="applicant-id" type="text" placeholder="e.g. SME-NEW-0001"
-             class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
+      <button id="run-btn" class="btn btn-ok btn-lg" style="width:100%">
+        <span aria-hidden="true">▸</span> Run underwriting
+      </button>
+      <div id="run-error" style="margin-top:.7rem"></div>
     </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">Requested amount (PKR, optional)</label>
-        <input id="requested-amount" type="number" min="0"
-               class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
-      </div>
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">Tenor (months, optional)</label>
-        <input id="tenor-months" type="number" min="0"
-               class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full" />
-      </div>
-    </div>
-    <label class="flex items-center gap-2 text-sm text-slate-600">
-      <input id="is-clean-facility" type="checkbox" /> Clean facility (unsecured / personal-guarantee only)
-    </label>
   </div>
-
-  <button id="run-btn" class="w-full bg-emerald-600 text-white font-medium py-3 rounded-lg">Run underwriting</button>
-  <div id="run-error" class="mt-2"></div>
 </main>
 
 <script>
-const { el, fetchJSON, unresolvedBadge, errorState } = CS;
+const { el, fetchJSON, unresolvedBadge, errorState, toast } = CS;
 
 const FIELD_DEFS = [
   ["current_ratio", "Current Ratio", "e.g. 1.5"],
@@ -139,22 +171,22 @@ function renderForm() {
   FIELD_DEFS.forEach(([name, label, hint]) => {
     const isUnresolved = unresolvedSet.has(name);
     const input = el("input", {
-      type: "text", value: formValues[name], placeholder: hint,
-      class: "border rounded-lg px-3 py-2 text-sm w-full " + (isUnresolved ? "border-amber-400 bg-amber-50" : "border-slate-300"),
+      id: `f-${name}`, type: "text", value: formValues[name], placeholder: hint,
+      class: "input" + (isUnresolved ? " input-flag" : ""),
       oninput: (e) => { formValues[name] = e.target.value; syncJsonView(); },
     });
     container.appendChild(el("div", {},
-      el("label", { class: "flex items-center gap-2 text-sm text-slate-600 mb-1" },
+      el("label", { class: "label", for: `f-${name}` },
         label, isUnresolved ? unresolvedBadge() : null),
       input
     ));
   });
   container.appendChild(el("div", {},
-    el("label", { class: "block text-sm text-slate-600 mb-1" },
+    el("label", { class: "label", for: "f-notes" },
       "Credit Officer's Notes", unresolvedSet.has("notes") ? unresolvedBadge() : null),
     el("textarea", {
-      rows: 3, placeholder: "English or Urdu-English is fine",
-      class: "border border-slate-300 rounded-lg px-3 py-2 text-sm w-full",
+      id: "f-notes", rows: 3, placeholder: "English or Urdu-English is fine",
+      class: "textarea",
       oninput: (e) => { notesValue = e.target.value; syncJsonView(); },
     }, notesValue)
   ));
@@ -165,24 +197,24 @@ function renderRecordFields() {
   container.innerHTML = "";
   RECORD_FIELD_DEFS.forEach(([name, label, hintOrKind]) => {
     const isUnresolved = unresolvedSet.has(name);
-    const badgeClass = "border rounded-lg px-3 py-2 text-sm w-full " + (isUnresolved ? "border-amber-400 bg-amber-50" : "border-slate-300");
     let input;
     if (hintOrKind === "select") {
       input = el("select", {
-        class: badgeClass,
+        id: `r-${name}`,
+        class: "select" + (isUnresolved ? " select-flag" : ""),
         onchange: (e) => { recordValues[name] = e.target.value; syncJsonView(); },
       }, ...DOCUMENTATION_TIER_OPTIONS.map((opt) =>
         el("option", { value: opt, selected: recordValues[name] === opt ? "" : null }, opt || "-- Select --")
       ));
     } else {
       input = el("input", {
-        type: "text", value: recordValues[name], placeholder: hintOrKind,
-        class: badgeClass,
+        id: `r-${name}`, type: "text", value: recordValues[name], placeholder: hintOrKind,
+        class: "input" + (isUnresolved ? " input-flag" : ""),
         oninput: (e) => { recordValues[name] = e.target.value; syncJsonView(); },
       });
     }
     container.appendChild(el("div", {},
-      el("label", { class: "flex items-center gap-2 text-sm text-slate-600 mb-1" },
+      el("label", { class: "label", for: `r-${name}` },
         label, isUnresolved ? unresolvedBadge() : null),
       input
     ));
@@ -194,14 +226,18 @@ function syncJsonView() {
   if (box) box.value = JSON.stringify({ ...formValues, ...recordValues, notes: notesValue }, null, 2);
 }
 
-document.getElementById("toggle-json").addEventListener("click", () => {
-  document.getElementById("json-panel").classList.toggle("hidden");
+const toggleJsonBtn = document.getElementById("toggle-json");
+toggleJsonBtn.addEventListener("click", () => {
+  const panel = document.getElementById("json-panel");
+  const open = panel.classList.toggle("hidden") === false;
+  toggleJsonBtn.setAttribute("aria-expanded", String(open));
+  toggleJsonBtn.textContent = open ? "Hide JSON editor" : "Edit as JSON";
   syncJsonView();
 });
 
 document.getElementById("apply-json").addEventListener("click", () => {
   const errEl = document.getElementById("json-error");
-  errEl.textContent = "";
+  errEl.innerHTML = "";
   try {
     const parsed = JSON.parse(document.getElementById("json-box").value);
     FIELD_DEFS.forEach(([name]) => { if (name in parsed) formValues[name] = String(parsed[name]); });
@@ -210,17 +246,41 @@ document.getElementById("apply-json").addEventListener("click", () => {
     unresolvedSet = new Set(); // manual edit -- no longer "unresolved from extraction"
     renderForm();
     renderRecordFields();
+    toast("JSON applied to the form.", "ok");
   } catch (err) {
-    errEl.textContent = "Invalid JSON: " + err.message;
+    errEl.appendChild(errorState("Invalid JSON: " + err.message));
   }
 });
 
-document.getElementById("pdf-input").addEventListener("change", async (e) => {
+// Drag-and-drop is a shortcut over the same <input type="file">, never a replacement --
+// the label keeps the picker reachable by keyboard and by screen reader.
+const dropZone = document.getElementById("drop-zone");
+const pdfInput = document.getElementById("pdf-input");
+["dragenter", "dragover"].forEach((evt) => dropZone.addEventListener(evt, (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = "var(--accent-hi)";
+  dropZone.style.background = "rgba(99,102,241,.12)";
+}));
+["dragleave", "drop"].forEach((evt) => dropZone.addEventListener(evt, (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = "var(--border-hi)";
+  dropZone.style.background = "rgba(2,6,16,.35)";
+}));
+dropZone.addEventListener("drop", (e) => {
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) handlePdf(file);
+});
+pdfInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
+  if (file) handlePdf(file);
+});
+
+async function handlePdf(file) {
   const status = document.getElementById("upload-status");
-  if (!file) return;
-  status.textContent = "Uploading and parsing...";
-  status.className = "mt-2 text-sm text-slate-500";
+  status.innerHTML = "";
+  status.appendChild(el("div", { class: "alert alert-info" },
+    el("span", { class: "alert-icon", "aria-hidden": "true" }, "◌"),
+    el("span", {}, `Uploading and parsing ${file.name}…`)));
   try {
     const body = new FormData();
     body.append("file", file);
@@ -249,13 +309,17 @@ document.getElementById("pdf-input").addEventListener("change", async (e) => {
     if (unresolvedSet.size) {
       notes.push(`${unresolvedSet.size} field(s) could not be read -- fill them in below.`);
     }
-    status.textContent = notes.length ? notes.join(" ") : "All fields extracted.";
-    status.className = "mt-2 text-sm " + (notes.length ? "text-amber-700" : "text-emerald-700");
+    status.innerHTML = "";
+    status.appendChild(el("div", { class: `alert ${notes.length ? "alert-warn" : "alert-ok"}` },
+      el("span", { class: "alert-icon", "aria-hidden": "true" }, notes.length ? "!" : "✓"),
+      el("span", {}, notes.length ? notes.join(" ") : "All fields extracted.")));
+    if (notes.length) toast(`${file.name} parsed with warnings — check the flagged fields.`, "warn", 6000);
+    else toast(`${file.name} parsed — all fields extracted.`, "ok");
   } catch (err) {
-    status.textContent = "Could not parse this PDF: " + err.message;
-    status.className = "mt-2 text-sm text-red-700";
+    status.innerHTML = "";
+    status.appendChild(errorState("Could not parse this PDF: " + err.message));
   }
-});
+}
 
 function buildRawProfileJson() {
   const profile = {};
@@ -278,12 +342,13 @@ document.getElementById("run-btn").addEventListener("click", async () => {
   const applicantId = document.getElementById("applicant-id").value.trim();
   if (!applicantId) {
     errEl.appendChild(errorState("Enter an applicant ID before running underwriting."));
+    document.getElementById("applicant-id").focus();
     return;
   }
 
   const runBtn = document.getElementById("run-btn");
   runBtn.disabled = true;
-  runBtn.textContent = "Creating applicant record...";
+  runBtn.textContent = "Creating applicant record…";
   try {
     await fetchJSON("/api/applicants", {
       method: "POST",
@@ -313,6 +378,7 @@ document.getElementById("run-btn").addEventListener("click", async () => {
       ? Number(document.getElementById("tenor-months").value) : null,
   };
   sessionStorage.setItem("cs_new_application", JSON.stringify(application));
+  runBtn.textContent = "Starting the agents…";
   location.href = `review.html?run=1&source=session&applicant_id=${encodeURIComponent(applicantId)}`;
 });
 

@@ -3,57 +3,73 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
 <title>CreditSense — Work Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css?v=2" />
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-<nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
-  <span class="font-bold text-lg">CreditSense</span>
-  <a href="index.html" class="text-sm font-medium text-slate-900">Work Queue</a>
-  <a href="regulations.html" class="text-sm text-slate-500 hover:text-slate-900">Regulations</a>
-  <a href="portfolio.html" class="text-sm text-slate-500 hover:text-slate-900">Portfolio</a>
-  <a href="audit.html" class="text-sm text-slate-500 hover:text-slate-900">Audit Trail</a>
+<body>
+<a href="#main" class="sr-only">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a href="index.html" class="brand"><span class="brand-mark" aria-hidden="true">CS</span> CreditSense</a>
+  <a href="index.html" class="navlink" aria-current="page">Work Queue</a>
+  <a href="regulations.html" class="navlink">Regulations</a>
+  <a href="portfolio.html" class="navlink">Portfolio</a>
+  <a href="audit.html" class="navlink">Audit Trail</a>
 </nav>
 
-<main class="max-w-5xl mx-auto px-6 py-8">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold">Work Queue</h1>
-    <div class="flex gap-2">
-      <input id="search-box" type="text" placeholder="Search applicant ID or sector..."
-             class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-64" />
-      <button id="search-btn" class="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg">Find / run</button>
-      <a href="new-application.html"
-         class="border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-50">
-        + New applicant
+<main id="main" class="shell shell-lg">
+  <header class="page-head rise">
+    <h1 class="h1"><span class="gradient-text">Work Queue</span></h1>
+    <p class="lede" style="margin:.5rem 0 0">
+      Everything the four agents have decided, and everything they handed back to you.
+      Open a case to see how it was reached — as received, as understood, and why.
+    </p>
+  </header>
+
+  <div id="stats" class="stat-grid" style="margin-bottom:1.4rem"></div>
+
+  <section class="card card-pad rise" style="--i:2;margin-bottom:1.1rem">
+    <label class="label" for="search-box">Find an applicant and run underwriting</label>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <input id="search-box" type="text" class="input" style="flex:1 1 16rem;width:auto"
+             placeholder="Search applicant ID or sector…" autocomplete="off" />
+      <button id="search-btn" class="btn btn-primary">
+        <span aria-hidden="true">⌕</span> Find / run
+      </button>
+      <a href="new-application.html" class="btn">
+        <span aria-hidden="true">＋</span> New applicant
       </a>
     </div>
-  </div>
+    <div id="search-results" style="margin-top:.9rem"></div>
+  </section>
 
-  <div id="search-results" class="mb-6"></div>
-
-  <div class="flex gap-1 mb-4 border-b border-slate-200">
-    <button data-tab="escalated" class="tab-btn px-4 py-2 text-sm font-medium border-b-2">
-      Needs You <span id="needs-you-count" class="ml-1 inline-flex items-center justify-center text-xs bg-amber-500 text-white rounded-full w-5 h-5"></span>
+  <div class="tabs rise" role="tablist" aria-label="Queue filter" style="--i:3;margin-bottom:1rem">
+    <button data-tab="escalated" class="tab" role="tab" aria-selected="true" aria-controls="queue-list">
+      Needs You <span id="needs-you-count" class="count-pill hidden"></span>
     </button>
-    <button data-tab="decided" class="tab-btn px-4 py-2 text-sm font-medium border-b-2">Recently Decided</button>
-    <button data-tab="all" class="tab-btn px-4 py-2 text-sm font-medium border-b-2">All Applications</button>
+    <button data-tab="decided" class="tab" role="tab" aria-selected="false" aria-controls="queue-list">Recently Decided</button>
+    <button data-tab="all" class="tab" role="tab" aria-selected="false" aria-controls="queue-list">All Applications</button>
   </div>
 
-  <div id="queue-list"></div>
+  <div id="queue-list" role="tabpanel" aria-live="polite"></div>
 </main>
 
 <script>
-const { el, fetchJSON, skeleton, emptyState, errorState, verdictBadge, fmtPKR, fmtDate } = CS;
+const { el, rise, fetchJSON, skeleton, emptyState, errorState, verdictBadge,
+        statTile, countUp, fmtPKR, fmtPKRShort, fmtDate } = CS;
 
 let activeTab = "escalated";
 
 function setActiveTab(tab) {
   activeTab = tab;
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    const on = btn.dataset.tab === tab;
-    btn.className = "tab-btn px-4 py-2 text-sm font-medium border-b-2 " +
-      (on ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-900");
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.setAttribute("aria-selected", String(btn.dataset.tab === tab));
   });
   loadQueue();
 }
@@ -62,6 +78,38 @@ function statusForTab(tab) {
   if (tab === "escalated") return "escalated";
   if (tab === "decided") return null; // filtered client-side to success/failed below
   return null;
+}
+
+// Headline numbers, derived only from fields /api/decisions already returns. The
+// caption says "last 200" because that is literally the window queried -- a stat tile
+// that quietly implies "all time" would be a lie the officer can't see.
+async function loadStats() {
+  const host = document.getElementById("stats");
+  host.appendChild(skeleton(1));
+  try {
+    const rows = await fetchJSON("/api/decisions?limit=200");
+    const runs = rows.filter((r) => r.action === "underwriting_decision");
+    const needs = runs.filter((r) => r.status === "escalated").length;
+    const approved = runs.filter((r) => r.decision === "APPROVE");
+    const declined = runs.filter((r) => r.decision === "DECLINE").length;
+    const volume = approved.reduce((sum, r) => sum + (r.approved_amount_pkr || 0), 0);
+
+    host.innerHTML = "";
+    const tiles = [
+      ["Needs your review", needs, "escalated to a human", (v) => String(Math.round(v))],
+      ["Approved", approved.length, "auto-approved within guardrail", (v) => String(Math.round(v))],
+      ["Declined", declined, "failed risk or compliance", (v) => String(Math.round(v))],
+      ["Approved volume", volume, "across the last 200 records", fmtPKRShort],
+    ];
+    tiles.forEach(([label, value, sub, fmt], i) => {
+      const tile = rise(statTile(label, "—", sub), i);
+      host.appendChild(tile);
+      countUp(tile.querySelector(".stat-value"), value, fmt);
+    });
+  } catch (err) {
+    host.innerHTML = "";
+    host.appendChild(errorState("Could not load the summary: " + err.message));
+  }
 }
 
 async function loadQueue() {
@@ -83,12 +131,13 @@ async function loadQueue() {
     listEl.innerHTML = "";
     if (rows.length === 0) {
       listEl.appendChild(emptyState(
-        activeTab === "escalated" ? "Nothing needs your attention." : "No applications in this view yet."
+        activeTab === "escalated" ? "Nothing needs your attention right now." : "No applications in this view yet.",
+        activeTab === "escalated" ? "✓" : "◍"
       ));
       return;
     }
-    const table = el("div", { class: "divide-y divide-slate-200 bg-white border border-slate-200 rounded-lg overflow-hidden" });
-    rows.forEach((r) => table.appendChild(renderRow(r)));
+    const table = el("div", { class: "card list" });
+    rows.forEach((r, i) => table.appendChild(rise(renderRow(r), i)));
     listEl.appendChild(table);
   } catch (err) {
     listEl.innerHTML = "";
@@ -100,17 +149,17 @@ function renderRow(r) {
   const href = `review.html?id=${encodeURIComponent(r.id)}`;
   return el(
     "a",
-    { href, class: "flex items-center justify-between px-4 py-3 hover:bg-slate-50" },
-    el("div", { class: "flex items-center gap-4" },
-      r.decision ? verdictBadge(r.decision) : el("span", { class: "text-xs text-slate-400" }, r.status),
-      el("div", {},
-        el("div", { class: "font-medium" }, r.applicant_id || "(unknown applicant)"),
-        el("div", { class: "text-sm text-slate-500" }, r.rationale || "")
+    { href, class: "row" },
+    el("div", { style: "display:flex;align-items:center;gap:.9rem;min-width:0" },
+      r.decision ? verdictBadge(r.decision) : el("span", { class: "badge" }, r.status),
+      el("div", { style: "min-width:0" },
+        el("div", { class: "row-title" }, r.applicant_id || "(unknown applicant)"),
+        el("div", { class: "row-sub clamp-2" }, r.rationale || "")
       )
     ),
-    el("div", { class: "text-right text-sm text-slate-500" },
-      el("div", {}, fmtPKR(r.approved_amount_pkr)),
-      el("div", {}, fmtDate(r.created_at))
+    el("div", { class: "row-meta" },
+      el("div", { class: "num", style: "color:var(--text);font-weight:600" }, fmtPKR(r.approved_amount_pkr)),
+      el("div", { class: "dim" }, fmtDate(r.created_at))
     )
   );
 }
@@ -125,18 +174,20 @@ async function runSearch() {
     const applicants = await fetchJSON(`/api/applicants?search=${encodeURIComponent(q)}&limit=8`);
     results.innerHTML = "";
     if (applicants.length === 0) {
-      results.appendChild(emptyState(`No applicants matching "${q}".`));
+      results.appendChild(emptyState(`No applicants matching "${q}".`, "⌕"));
       return;
     }
-    const box = el("div", { class: "bg-white border border-slate-200 rounded-lg divide-y divide-slate-200 mb-2" });
-    applicants.forEach((a) => {
-      box.appendChild(el(
+    const box = el("div", { class: "card list" });
+    applicants.forEach((a, i) => {
+      box.appendChild(rise(el(
         "a",
-        { href: `review.html?applicant_id=${encodeURIComponent(a.applicant_id)}&run=1`,
-          class: "flex items-center justify-between px-4 py-3 hover:bg-slate-50" },
-        el("span", { class: "font-medium" }, a.applicant_id),
-        el("span", { class: "text-sm text-slate-500" }, a.sector || "")
-      ));
+        { href: `review.html?applicant_id=${encodeURIComponent(a.applicant_id)}&run=1`, class: "row" },
+        el("span", { class: "row-title" }, a.applicant_id),
+        el("span", { style: "display:flex;align-items:center;gap:.7rem" },
+          a.sector ? el("span", { class: "badge" }, a.sector) : null,
+          el("span", { class: "dim", style: "font-size:.8rem" }, "Run →")
+        )
+      ), i));
     });
     results.appendChild(box);
   } catch (err) {
@@ -145,12 +196,13 @@ async function runSearch() {
   }
 }
 
-document.querySelectorAll(".tab-btn").forEach((btn) => {
+document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
 });
 document.getElementById("search-btn").addEventListener("click", runSearch);
 document.getElementById("search-box").addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
 
+loadStats();
 setActiveTab("escalated");
 </script>
 </body>

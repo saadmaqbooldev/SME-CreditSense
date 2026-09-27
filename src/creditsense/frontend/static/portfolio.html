@@ -3,78 +3,138 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
 <title>CreditSense — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css?v=2" />
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-<nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
-  <span class="font-bold text-lg">CreditSense</span>
-  <a href="index.html" class="text-sm text-slate-500 hover:text-slate-900">Work Queue</a>
-  <a href="regulations.html" class="text-sm text-slate-500 hover:text-slate-900">Regulations</a>
-  <a href="portfolio.html" class="text-sm font-medium text-slate-900">Portfolio</a>
-  <a href="audit.html" class="text-sm text-slate-500 hover:text-slate-900">Audit Trail</a>
+<body>
+<a href="#main" class="sr-only">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a href="index.html" class="brand"><span class="brand-mark" aria-hidden="true">CS</span> CreditSense</a>
+  <a href="index.html" class="navlink">Work Queue</a>
+  <a href="regulations.html" class="navlink">Regulations</a>
+  <a href="portfolio.html" class="navlink" aria-current="page">Portfolio</a>
+  <a href="audit.html" class="navlink">Audit Trail</a>
 </nav>
 
-<main class="max-w-3xl mx-auto px-6 py-8">
-  <h1 class="text-2xl font-bold mb-1">Portfolio — Sector Exposure</h1>
-  <p class="text-slate-500 text-sm mb-6">
-    Against clause P-1's 25% single-sector concentration limit.
-  </p>
-  <div id="content"></div>
+<main id="main" class="shell shell-md">
+  <header class="page-head rise">
+    <h1 class="h1"><span class="gradient-text">Sector Exposure</span></h1>
+    <p class="lede" style="margin:.5rem 0 0">
+      Every sector's share of the book, against clause P-1's 25% single-sector
+      concentration limit. A sector over the line is marked three ways — colour,
+      hatching, and an "Over limit" badge — so it reads the same in greyscale.
+    </p>
+  </header>
+
+  <div id="stats" class="stat-grid" style="margin-bottom:1.4rem"></div>
+  <div id="content" class="stack"></div>
 </main>
 
 <script>
-const { el, fetchJSON, skeleton, errorState, fmtPKR } = CS;
+const { el, rise, fetchJSON, skeleton, errorState, statTile, countUp, animateTo,
+        fmtPKR, fmtPKRShort } = CS;
+
+function overLimitBadge() {
+  return el("span", { class: "badge badge-bad" },
+    el("span", { "aria-hidden": "true" }, "▲"), el("span", {}, "Over limit"));
+}
+
+function barRow(r, limit, maxPct) {
+  const overLimit = r.pct_of_book > limit;
+  const fill = el("div", { class: "bar-fill" + (overLimit ? " bar-fill-over" : "") });
+  const track = el("div", {
+    class: "bar-track",
+    role: "img",
+    "aria-label": `${r.sector}: ${r.pct_of_book.toFixed(2)} percent of the book, limit ${limit} percent`,
+  }, fill);
+  animateTo(fill, "width", `${(r.pct_of_book / maxPct) * 100}%`);
+
+  // The policy limit as a fixed reference tick on every bar, not only on the ones that
+  // breach it -- otherwise "how close am I?" isn't answerable by eye. It sits on the
+  // wrapper so it can overhang the track instead of being clipped by it.
+  const wrap = el("div", { class: "bar-wrap" },
+    track,
+    el("div", { class: "bar-limit", style: `left:${(limit / maxPct) * 100}%`, title: `${limit}% limit` })
+  );
+
+  return el("div", {},
+    el("div", { style: "display:flex;align-items:center;gap:.6rem;margin-bottom:.35rem" },
+      el("span", { style: "font-weight:600;font-size:.875rem" }, r.sector),
+      overLimit ? overLimitBadge() : null,
+      el("span", { class: "num", style: `margin-left:auto;font-weight:650;font-size:.875rem;color:${overLimit ? "var(--bad-fg)" : "var(--text-muted)"}` },
+        `${r.pct_of_book.toFixed(2)}%`)
+    ),
+    wrap
+  );
+}
 
 async function load() {
+  const statsHost = document.getElementById("stats");
   const content = document.getElementById("content");
+  statsHost.appendChild(skeleton(1));
   content.appendChild(skeleton(6));
   try {
     const data = await fetchJSON("/api/portfolio/exposure");
-    content.innerHTML = "";
     const limit = data.sector_concentration_limit_pct;
-    const maxPct = Math.max(limit, ...data.rows.map((r) => r.pct_of_book), 1);
+    // 1.12x headroom so the limit tick never lands flush against the right edge, where
+    // it reads as a border rather than as the 25% line.
+    const maxPct = Math.max(limit, ...data.rows.map((r) => r.pct_of_book), 1) * 1.12;
+    const totalBook = data.rows.reduce((s, r) => s + (r.total_exposure_pkr || 0), 0);
+    const totalApplicants = data.rows.reduce((s, r) => s + (r.applicant_count || 0), 0);
+    const breaching = data.rows.filter((r) => r.pct_of_book > limit);
 
-    const chart = el("div", { class: "bg-white border border-slate-200 rounded-lg p-5 mb-6 space-y-3" });
-    data.rows.forEach((r) => {
-      const width = (r.pct_of_book / maxPct) * 100;
-      const overLimit = r.pct_of_book > limit;
-      chart.appendChild(el(
-        "div", {},
-        el("div", { class: "flex justify-between text-sm mb-0.5" },
-          el("span", { class: "font-medium" }, r.sector),
-          el("span", { class: overLimit ? "text-red-700 font-semibold" : "text-slate-600" }, `${r.pct_of_book.toFixed(2)}%`)
-        ),
-        el("div", { class: "relative h-4 bg-slate-100 rounded", html:
-          `<div style="width:${width}%;height:100%;border-radius:4px;background:${overLimit ? '#dc2626' : '#4338ca'}"></div>` })
-      ));
+    statsHost.innerHTML = "";
+    const tiles = [
+      ["Total book", totalBook, `${totalApplicants} applicants`, fmtPKRShort],
+      ["Sectors", data.rows.length, "with live exposure", (v) => String(Math.round(v))],
+      ["Over the 25% limit", breaching.length, breaching.length ? breaching.map((r) => r.sector).join(", ") : "none — within clause P-1", (v) => String(Math.round(v))],
+    ];
+    tiles.forEach(([label, value, sub, fmt], i) => {
+      const tile = rise(statTile(label, "—", sub), i);
+      statsHost.appendChild(tile);
+      countUp(tile.querySelector(".stat-value"), value, fmt);
     });
-    const limitLine = el("div", { class: "text-xs text-slate-500 pt-2 border-t border-slate-200" },
-      `Reference: ${limit}% policy limit (clause P-1)`);
-    chart.appendChild(limitLine);
-    content.appendChild(chart);
 
-    const table = el("table", { class: "w-full text-sm bg-white border border-slate-200 rounded-lg overflow-hidden" });
-    table.appendChild(el("thead", {},
-      el("tr", { class: "bg-slate-50 text-left" },
-        el("th", { class: "px-4 py-2" }, "Sector"),
-        el("th", { class: "px-4 py-2" }, "Applicants"),
-        el("th", { class: "px-4 py-2" }, "Total exposure"),
-        el("th", { class: "px-4 py-2" }, "% of book"))
-    ));
+    content.innerHTML = "";
+
+    const chartBody = el("div", { class: "stack" });
+    data.rows.forEach((r, i) => chartBody.appendChild(rise(barRow(r, limit, maxPct), i)));
+    chartBody.appendChild(el("p", { class: "hint", style: "padding-top:.7rem;border-top:1px solid var(--border)" },
+      `The vertical tick on each bar is the ${limit}% policy limit (clause P-1).`));
+    content.appendChild(rise(CS.card("Concentration by sector", chartBody, "lift"), 1));
+
     const tbody = el("tbody", {});
     data.rows.forEach((r) => {
-      tbody.appendChild(el("tr", { class: "border-t border-slate-100" },
-        el("td", { class: "px-4 py-2" }, r.sector),
-        el("td", { class: "px-4 py-2" }, String(r.applicant_count)),
-        el("td", { class: "px-4 py-2" }, fmtPKR(r.total_exposure_pkr)),
-        el("td", { class: "px-4 py-2" }, `${r.pct_of_book.toFixed(2)}%`)
+      const over = r.pct_of_book > limit;
+      tbody.appendChild(el("tr", {},
+        el("td", { style: "font-weight:550" }, r.sector),
+        el("td", { class: "num" }, String(r.applicant_count)),
+        el("td", { class: "num" }, fmtPKR(r.total_exposure_pkr)),
+        el("td", { class: "num", style: over ? "color:var(--bad-fg);font-weight:650" : "" },
+          `${r.pct_of_book.toFixed(2)}%`),
+        el("td", {}, over ? overLimitBadge() : el("span", { class: "badge badge-ok" },
+          el("span", { "aria-hidden": "true" }, "✓"), el("span", {}, "Within limit")))
       ));
     });
-    table.appendChild(tbody);
-    content.appendChild(table);
+    const table = el("div", { class: "card", style: "overflow:hidden" },
+      el("table", { class: "table" },
+        el("thead", {}, el("tr", {},
+          el("th", { scope: "col" }, "Sector"),
+          el("th", { scope: "col" }, "Applicants"),
+          el("th", { scope: "col" }, "Total exposure"),
+          el("th", { scope: "col" }, "% of book"),
+          el("th", { scope: "col" }, "Status"))),
+        tbody));
+    content.appendChild(rise(table, 2));
   } catch (err) {
+    statsHost.innerHTML = "";
     content.innerHTML = "";
     content.appendChild(errorState(err.message));
   }
